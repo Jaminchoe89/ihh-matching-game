@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IHH Matching Game</title>
+    <link rel="stylesheet" href="./styles.css?v=20260624e" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="game-card">
+        <section class="game-overlay" id="game-overlay" aria-live="polite">
+          <div class="overlay-panel">
+            <img
+              id="overlay-logo"
+              class="overlay-logo"
+              src="./1x/Logo Light Blue.png"
+              alt="Logo"
+            />
+            <p id="overlay-message" class="overlay-message" hidden></p>
+            <p id="overlay-instructions" class="overlay-instructions">
+              Match the cards within 20 seconds.
+            </p>
+            <button id="overlay-button" class="primary-button" type="button">
+              Start
+            </button>
+          </div>
+        </section>
+
+        <div class="playfield">
+          <header class="hud">
+            <div class="timer-bar" aria-live="polite">
+              <strong id="timer">20</strong>
+            </div>
+          </header>
+
+          <section
+            class="game-board"
+            id="game-board"
+            aria-label="Memory card board"
+          ></section>
+        </div>
+      </section>
+    </main>
+
+    <template id="card-template">
+      <button class="memory-card" type="button">
+        <span class="card-face card-front"></span>
+        <span class="card-face card-back"></span>
+      </button>
+    </template>
+
+    <script src="./script.js?v=20260624f"></script>
+  </body>
+</html>

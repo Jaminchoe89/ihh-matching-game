@@ -1,0 +1,10 @@
+node_modules/
+.DS_Store
+*.log
+.claude/settings.local.json
+
+# Temporary preview/screenshot helpers
+__preview.html
+__win.html
+__end.html
+__timeout.html
