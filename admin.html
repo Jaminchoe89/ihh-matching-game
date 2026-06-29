@@ -133,12 +133,14 @@
         }
       }
 
+      const adminToken = window.location.pathname.split("/").filter(Boolean).pop();
+
       async function load() {
         statusEl.textContent = "Loading…";
         try {
-          const response = await fetch("/api/admin/leads", { cache: "no-store" });
-          if (response.status === 401) {
-            statusEl.textContent = "Unauthorized — reload to sign in.";
+          const response = await fetch(`/api/leads/${adminToken}`, { cache: "no-store" });
+          if (response.status === 404) {
+            statusEl.textContent = "Invalid or expired admin link.";
             return;
           }
           if (!response.ok) throw new Error(response.status);

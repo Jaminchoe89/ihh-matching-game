@@ -10,7 +10,9 @@ const ROOT = __dirname;
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+// The admin panel is reached only via this secret path segment (no password);
+// keep the resulting URL private. /admin without the token returns 404.
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
 const TABLE = "leaderboard";
 const TOP_N = 5;
@@ -107,27 +109,8 @@ async function getAllLeads() {
   return response.json();
 }
 
-function isAuthorized(req) {
-  if (!ADMIN_PASSWORD) return false;
-  const header = req.headers["authorization"] || "";
-  if (!header.startsWith("Basic ")) return false;
-  let decoded;
-  try {
-    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
-  } catch {
-    return false;
-  }
-  const separator = decoded.indexOf(":");
-  const password = separator >= 0 ? decoded.slice(separator + 1) : decoded;
-  return password === ADMIN_PASSWORD;
-}
-
-function requireAuth(res) {
-  res.writeHead(401, {
-    "WWW-Authenticate": 'Basic realm="IHH Matching Game Admin"',
-    "Content-Type": "text/plain; charset=utf-8",
-  });
-  res.end("Authentication required");
+function adminTokenOk(token) {
+  return Boolean(ADMIN_TOKEN) && token === ADMIN_TOKEN;
 }
 
 function serveStatic(res, pathname) {
@@ -195,9 +178,11 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // --- Admin: all leads incl. phone numbers (password protected) ---
-  if (pathname === "/api/admin/leads" && req.method === "GET") {
-    if (!isAuthorized(req)) return requireAuth(res);
+  // --- Admin: all leads incl. phone numbers (access via secret token in URL) ---
+  if (pathname.startsWith("/api/leads/") && req.method === "GET") {
+    if (!adminTokenOk(pathname.slice("/api/leads/".length))) {
+      return sendText(res, 404, "Not found");
+    }
     if (!supabaseConfigured()) return sendJson(res, 200, { leads: [] });
     try {
       return sendJson(res, 200, { leads: await getAllLeads() });
@@ -207,10 +192,15 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // --- Admin page (password protected at the page level too) ---
-  if (pathname === "/admin" || pathname === "/admin/" || pathname === "/admin.html") {
-    if (!isAuthorized(req)) return requireAuth(res);
+  // --- Admin page (served only at the secret token path) ---
+  if (pathname.startsWith("/admin/")) {
+    if (!adminTokenOk(pathname.slice("/admin/".length))) {
+      return sendText(res, 404, "Not found");
+    }
     return serveStatic(res, "/admin.html");
+  }
+  if (pathname === "/admin" || pathname === "/admin.html") {
+    return sendText(res, 404, "Not found");
   }
 
   // --- Everything else: static files ---
