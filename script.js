@@ -675,9 +675,31 @@ async function handleFormSubmit(event) {
   }
 }
 
+function enterFullscreen() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    return;
+  }
+  const el = document.documentElement;
+  const request = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!request) {
+    return;
+  }
+  try {
+    const result = request.call(el);
+    if (result && typeof result.catch === "function") {
+      result.catch(() => {});
+    }
+  } catch (error) {
+    /* fullscreen not permitted in this context — ignore */
+  }
+}
+
 overlayButton.addEventListener("click", handleOverlayButtonClick);
 overlayForm.addEventListener("submit", handleFormSubmit);
 gameBoard.addEventListener("click", handleCardClick);
+// Kiosk: any tap/click in the game goes fullscreen (game only — the admin
+// page doesn't load this script).
+document.addEventListener("click", enterFullscreen);
 
 renderBottomLeaderboard([], null);
 showIntroOverlay();
