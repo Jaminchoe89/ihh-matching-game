@@ -1,6 +1,6 @@
 const TURN_LENGTH = 20;
 const CARD_COUNT = 12;
-const CARD_BACK_IMAGE = "./assets/cards/Back.png";
+const CARD_BACK_IMAGE = "./assets/cards/Back.png?v=2";
 const SOUND_VOLUME_MULTIPLIER = 12;
 const CARD_FACE_IMAGES = [
   "./assets/cards/Front 1.png",

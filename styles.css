@@ -35,6 +35,8 @@
   --teal: #78ccc7;
   --white: #ffffff;
   --accent: #78ccc7;
+  --bg: #191a45;
+  --bg-deep: #13142f;
   --panel: rgba(47, 48, 120, 0.92);
   --panel-strong: rgba(37, 38, 95, 0.96);
   --line: rgba(255, 255, 255, 0.16);
@@ -57,7 +59,7 @@ body {
   min-height: 100vh;
   font-family: "IHH Sans", sans-serif;
   color: var(--white);
-  background: linear-gradient(180deg, var(--indigo), var(--indigo-deep));
+  background: linear-gradient(180deg, var(--bg), var(--bg-deep));
 }
 
 /* Decorative background glows removed for a clean, even brand blue. */
@@ -104,8 +106,7 @@ body {
   --board-width-fit: calc(((100vw - (var(--stage-pad) * 2)) - (var(--board-gap) * 3)) * 7 / 20);
   --card-height: min(var(--board-height-fit), var(--board-width-fit), 31dvh);
   --card-width: calc(var(--card-height) * 5 / 7);
-  background:
-    linear-gradient(180deg, rgba(47, 48, 120, 0.98), rgba(37, 38, 95, 0.99));
+  background: linear-gradient(180deg, var(--bg), var(--bg-deep));
   display: flex;
   flex-direction: column;
 }
