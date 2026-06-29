@@ -192,6 +192,28 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // --- Admin: clear the entire leaderboard (token-gated, destructive) ---
+  if (pathname.startsWith("/api/leads/") && req.method === "DELETE") {
+    if (!adminTokenOk(pathname.slice("/api/leads/".length))) {
+      return sendText(res, 404, "Not found");
+    }
+    if (!supabaseConfigured()) return sendJson(res, 503, { error: "storage_unavailable" });
+    try {
+      const response = await supabase(`${TABLE}?id=gt.0`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" },
+      });
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`supabase delete ${response.status} ${detail}`);
+      }
+      return sendJson(res, 200, { ok: true });
+    } catch (error) {
+      console.error("clear error:", error.message);
+      return sendJson(res, 500, { error: "clear_failed" });
+    }
+  }
+
   // --- Admin page (served only at the secret token path) ---
   if (pathname.startsWith("/admin/")) {
     if (!adminTokenOk(pathname.slice("/admin/".length))) {

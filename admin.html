@@ -70,24 +70,56 @@
         color: var(--teal);
       }
 
-      .refresh {
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .btn {
         appearance: none;
-        border: none;
+        border: 1px solid transparent;
         border-radius: 999px;
-        padding: 11px 24px;
-        background: var(--teal);
-        color: var(--indigo);
+        padding: 11px 22px;
         font: inherit;
         font-weight: 700;
         cursor: pointer;
-        transition: transform 120ms ease, box-shadow 120ms ease;
+        transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
       }
-      .refresh:hover {
-        box-shadow: 0 8px 20px rgba(120, 204, 199, 0.3);
+      .btn:hover {
         transform: translateY(-1px);
       }
-      .refresh:active {
+      .btn:active {
         transform: translateY(0);
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+        transform: none;
+      }
+      .btn-primary {
+        background: var(--teal);
+        color: var(--indigo);
+      }
+      .btn-primary:hover {
+        box-shadow: 0 8px 20px rgba(120, 204, 199, 0.3);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--white);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+      .btn-ghost:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      .btn-danger {
+        background: transparent;
+        color: #ff9b9b;
+        border-color: rgba(255, 155, 155, 0.5);
+      }
+      .btn-danger:hover:not(:disabled) {
+        background: rgba(255, 107, 107, 0.18);
+        color: #ffc2c2;
       }
 
       .card {
@@ -178,7 +210,11 @@
     <div class="wrap">
       <div class="bar">
         <div class="count"><b id="count">0</b> entries</div>
-        <button class="refresh" id="refresh" type="button">↻ Refresh</button>
+        <div class="actions">
+          <button class="btn btn-ghost" id="export" type="button">⬇ Export CSV</button>
+          <button class="btn btn-danger" id="clear" type="button">Clear</button>
+          <button class="btn btn-primary" id="refresh" type="button">↻ Refresh</button>
+        </div>
       </div>
 
       <div class="card">
@@ -202,7 +238,10 @@
       const rowsEl = document.getElementById("rows");
       const stateEl = document.getElementById("state");
       const countEl = document.getElementById("count");
+      const exportBtn = document.getElementById("export");
+      const clearBtn = document.getElementById("clear");
       const adminToken = window.location.pathname.split("/").filter(Boolean).pop();
+      let currentLeads = [];
 
       function fmtTime(ms) {
         return (Number(ms) / 1000).toFixed(2) + "s";
@@ -221,8 +260,14 @@
         stateEl.hidden = false;
       }
 
+      function setActionsEnabled(enabled) {
+        exportBtn.disabled = !enabled;
+        clearBtn.disabled = !enabled;
+      }
+
       async function load() {
         setState("Loading…");
+        setActionsEnabled(false);
         try {
           const response = await fetch(`/api/leads/${adminToken}`, { cache: "no-store" });
           if (response.status === 404) {
@@ -232,7 +277,9 @@
           if (!response.ok) throw new Error(response.status);
           const data = await response.json();
           const leads = Array.isArray(data.leads) ? data.leads : [];
+          currentLeads = leads;
           countEl.textContent = String(leads.length);
+          setActionsEnabled(leads.length > 0);
 
           if (leads.length === 0) {
             setState("No entries yet.");
@@ -263,7 +310,60 @@
         }
       }
 
+      function csvEscape(value) {
+        const s = String(value == null ? "" : value);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }
+
+      function exportCsv() {
+        if (!currentLeads.length) return;
+        const header = ["Rank", "Name", "Phone", "Time (s)", "Submitted"];
+        const rows = currentLeads.map((l, i) => [
+          i + 1,
+          l.name,
+          l.phone,
+          (Number(l.time_ms) / 1000).toFixed(2),
+          l.created_at,
+        ]);
+        const csv = [header, ...rows]
+          .map((r) => r.map(csvEscape).join(","))
+          .join("\r\n");
+        const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, "0");
+        const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `ihh-leaderboard-${stamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      async function clearAll() {
+        const n = currentLeads.length;
+        if (!n) return;
+        if (!confirm(`Delete all ${n} ${n === 1 ? "entry" : "entries"}? This cannot be undone.`)) {
+          return;
+        }
+        clearBtn.disabled = true;
+        clearBtn.textContent = "Clearing…";
+        try {
+          const response = await fetch(`/api/leads/${adminToken}`, { method: "DELETE" });
+          if (!response.ok) throw new Error(response.status);
+          await load();
+        } catch (error) {
+          alert("Couldn't clear the leaderboard — please try again.");
+        } finally {
+          clearBtn.textContent = "Clear";
+        }
+      }
+
       document.getElementById("refresh").addEventListener("click", load);
+      exportBtn.addEventListener("click", exportCsv);
+      clearBtn.addEventListener("click", clearAll);
       load();
     </script>
   </body>
