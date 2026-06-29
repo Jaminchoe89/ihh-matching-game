@@ -48,40 +48,19 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   font-family: "IHH Sans", sans-serif;
   color: var(--white);
-  background:
-    radial-gradient(circle at top right, rgba(152, 85, 158, 0.22), transparent 22%),
-    radial-gradient(circle at bottom left, rgba(120, 204, 199, 0.18), transparent 28%),
-    linear-gradient(180deg, var(--indigo), var(--indigo-deep));
+  background: linear-gradient(180deg, var(--indigo), var(--indigo-deep));
 }
 
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: auto;
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  filter: blur(24px);
-  pointer-events: none;
-}
-
-body::before {
-  top: -60px;
-  right: -60px;
-  background: rgba(120, 204, 199, 0.18);
-}
-
-body::after {
-  bottom: 8%;
-  left: -90px;
-  background: rgba(152, 85, 158, 0.18);
-}
+/* Decorative background glows removed for a clean, even brand blue. */
 
 .app-shell {
   width: 100vw;
@@ -162,6 +141,18 @@ body::after {
   border-radius: 28px;
   box-shadow: 0 14px 32px rgba(20, 20, 60, 0.2);
   backdrop-filter: blur(18px);
+}
+
+/* Result / form views carry a leaderboard or inputs — tighten so the
+   action button always fits, while the intro keeps its generous headroom. */
+.overlay-panel.is-compact {
+  gap: 13px;
+  padding: 28px 30px 26px;
+}
+
+.overlay-panel.is-compact .overlay-logo {
+  width: min(54%, 168px);
+  margin: 2px auto 6px;
 }
 
 .overlay-logo {
@@ -302,7 +293,7 @@ body::after {
   inset: 0;
   width: var(--timer-progress);
   background: var(--accent);
-  transition: width 900ms linear;
+  transition: none;
 }
 
 .timer-bar strong {
@@ -404,6 +395,98 @@ body::after {
   100% {
     transform: scale(1);
   }
+}
+
+.leaderboard {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.leaderboard-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.2rem, 2.6vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+.leaderboard-row.is-you {
+  background: var(--teal);
+  color: var(--indigo);
+  font-weight: 700;
+}
+
+.lb-rank {
+  font-weight: 700;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.lb-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.leaderboard-empty {
+  list-style: none;
+  text-align: center;
+  opacity: 0.8;
+  padding: 14px 8px;
+}
+
+.lead-form {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.lead-input {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--indigo);
+  font: inherit;
+  font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+}
+
+.lead-input::placeholder {
+  color: rgba(47, 48, 120, 0.5);
+}
+
+.form-error {
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  color: #ffd2d2;
 }
 
 @media (max-width: 900px) {

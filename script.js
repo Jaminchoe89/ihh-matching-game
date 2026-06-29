@@ -11,9 +11,15 @@ const CARD_FACE_IMAGES = [
   "./assets/cards/Front 6.png",
 ];
 
+const TURN_MS = TURN_LENGTH * 1000;
+const TOP_N = 5;
+
 const state = {
-  timer: TURN_LENGTH,
-  timerHandle: null,
+  startTime: 0,
+  rafHandle: null,
+  lastWholeSecond: TURN_LENGTH,
+  elapsedMs: 0,
+  completed: false,
   flipBackHandle: null,
   endOverlayHandle: null,
   musicHandle: null,
@@ -29,11 +35,18 @@ const state = {
 const gameBoard = document.querySelector("#game-board");
 const timerLabel = document.querySelector("#timer");
 const cardTemplate = document.querySelector("#card-template");
-const timerRing = document.querySelector(".timer-bar");
+const timerBar = document.querySelector(".timer-bar");
 const gameOverlay = document.querySelector("#game-overlay");
+const overlayPanel = document.querySelector(".overlay-panel");
 const overlayLogo = document.querySelector("#overlay-logo");
 const overlayMessage = document.querySelector("#overlay-message");
 const overlayInstructions = document.querySelector("#overlay-instructions");
+const overlayLeaderboard = document.querySelector("#overlay-leaderboard");
+const leaderboardList = document.querySelector("#leaderboard-list");
+const overlayForm = document.querySelector("#overlay-form");
+const formName = document.querySelector("#form-name");
+const formPhone = document.querySelector("#form-phone");
+const formError = document.querySelector("#form-error");
 const overlayButton = document.querySelector("#overlay-button");
 let audioContext;
 
@@ -275,37 +288,45 @@ function setBackgroundMusic(mode) {
 }
 
 function startTimer() {
-  window.clearInterval(state.timerHandle);
-  state.timer = TURN_LENGTH;
-  updateTimer();
-
-  state.timerHandle = window.setInterval(() => {
-    if (state.finished) {
-      return;
-    }
-
-    state.timer -= 1;
-    updateTimer();
-
-    if (state.timer <= 0) {
-      stopBackgroundMusic();
-      playTimesUpSound();
-      finishGame("Time's up.");
-      return;
-    }
-
-    if (state.timer <= 5) {
-      setBackgroundMusic("urgent");
-    }
-
-    playCountdownTick(state.timer);
-  }, 1000);
+  cancelAnimationFrame(state.rafHandle);
+  state.startTime = performance.now();
+  state.lastWholeSecond = TURN_LENGTH;
+  updateTimerDisplay(TURN_MS);
+  state.rafHandle = requestAnimationFrame(tickTimer);
 }
 
-function updateTimer() {
-  timerLabel.textContent = String(state.timer);
-  const progress = `${(state.timer / TURN_LENGTH) * 100}%`;
-  timerRing.style.setProperty("--timer-progress", progress);
+function tickTimer() {
+  if (state.finished || !state.started) {
+    return;
+  }
+
+  const elapsed = performance.now() - state.startTime;
+  const remainingMs = Math.max(0, TURN_MS - elapsed);
+  updateTimerDisplay(remainingMs);
+
+  const wholeSecond = Math.ceil(remainingMs / 1000);
+  if (wholeSecond !== state.lastWholeSecond) {
+    state.lastWholeSecond = wholeSecond;
+    if (wholeSecond <= 5 && wholeSecond > 0) {
+      setBackgroundMusic("urgent");
+      playCountdownTick(wholeSecond);
+    }
+  }
+
+  if (remainingMs <= 0) {
+    stopBackgroundMusic();
+    playTimesUpSound();
+    endGame(false, TURN_MS);
+    return;
+  }
+
+  state.rafHandle = requestAnimationFrame(tickTimer);
+}
+
+function updateTimerDisplay(remainingMs) {
+  timerLabel.textContent = (remainingMs / 1000).toFixed(2);
+  const progress = `${(remainingMs / TURN_MS) * 100}%`;
+  timerBar.style.setProperty("--timer-progress", progress);
 }
 
 function renderBoard() {
@@ -343,13 +364,28 @@ function updateStatus() {
   renderBoard();
 }
 
-function showOverlay(buttonLabel, message = "") {
+function setOverlayView(view, options = {}) {
   window.clearTimeout(state.endOverlayHandle);
-  overlayMessage.textContent = message;
-  overlayMessage.hidden = !message;
-  overlayLogo.hidden = Boolean(message);
-  overlayInstructions.hidden = Boolean(message);
-  overlayButton.textContent = buttonLabel;
+
+  const isIntro = view === "intro";
+  const isForm = view === "form";
+  const isResult = view === "result";
+
+  overlayPanel.classList.toggle("is-compact", isForm || isResult);
+  overlayLogo.hidden = false;
+  overlayInstructions.hidden = !isIntro;
+
+  overlayMessage.hidden = !options.message;
+  overlayMessage.textContent = options.message || "";
+
+  overlayForm.hidden = !isForm;
+  overlayLeaderboard.hidden = !isResult;
+
+  overlayButton.hidden = isForm;
+  if (!isForm) {
+    overlayButton.textContent = isIntro ? "Start" : "Play Again";
+  }
+
   gameOverlay.classList.remove("hidden");
 }
 
@@ -359,7 +395,7 @@ function hideOverlay() {
 
 function showIntroOverlay() {
   resetBoard();
-  showOverlay("Start");
+  setOverlayView("intro");
 }
 
 function resetBoard() {
@@ -368,38 +404,124 @@ function resetBoard() {
   state.lockBoard = false;
   state.finished = false;
   state.started = false;
-  state.timer = TURN_LENGTH;
-  window.clearInterval(state.timerHandle);
+  state.completed = false;
+  state.elapsedMs = 0;
+  state.lastWholeSecond = TURN_LENGTH;
+  cancelAnimationFrame(state.rafHandle);
   window.clearTimeout(state.flipBackHandle);
   window.clearTimeout(state.endOverlayHandle);
   stopBackgroundMusic();
-  updateTimer();
+  updateTimerDisplay(TURN_MS);
   updateStatus();
 }
 
-function buildEndMessage(matchedPairs) {
-  const totalPairs = CARD_COUNT / 2;
-  const pairLabel = matchedPairs === 1 ? "pair" : "pairs";
-
-  if (matchedPairs === totalPairs) {
-    return `Well done! You matched all ${totalPairs} pairs.`;
-  }
-
-  return `You've matched ${matchedPairs} ${pairLabel}. Thanks for playing!`;
+function formatTime(ms) {
+  return `${(ms / 1000).toFixed(2)}s`;
 }
 
-function finishGame(reason = "Nice run.") {
+function renderLeaderboardMessage(message) {
+  leaderboardList.innerHTML = "";
+  const li = document.createElement("li");
+  li.className = "leaderboard-empty";
+  li.textContent = message;
+  leaderboardList.appendChild(li);
+}
+
+function renderLeaderboard(entries, highlight) {
+  leaderboardList.innerHTML = "";
+  if (!entries || entries.length === 0) {
+    renderLeaderboardMessage("No scores yet — be the first!");
+    return;
+  }
+  entries.forEach((entry, index) => {
+    const li = document.createElement("li");
+    li.className = "leaderboard-row";
+    if (
+      highlight &&
+      entry.name === highlight.name &&
+      Number(entry.time_ms) === Number(highlight.time_ms)
+    ) {
+      li.classList.add("is-you");
+    }
+    const rank = document.createElement("span");
+    rank.className = "lb-rank";
+    rank.textContent = `${index + 1}`;
+    const name = document.createElement("span");
+    name.className = "lb-name";
+    name.textContent = entry.name;
+    const time = document.createElement("span");
+    time.className = "lb-time";
+    time.textContent = formatTime(entry.time_ms);
+    li.append(rank, name, time);
+    leaderboardList.appendChild(li);
+  });
+}
+
+async function fetchLeaderboard() {
+  const response = await fetch("/api/leaderboard", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`leaderboard ${response.status}`);
+  }
+  const data = await response.json();
+  return Array.isArray(data.leaderboard) ? data.leaderboard : [];
+}
+
+function qualifiesForTop(entries, timeMs) {
+  if (entries.length < TOP_N) {
+    return true;
+  }
+  return Number(timeMs) < Number(entries[entries.length - 1].time_ms);
+}
+
+function showResult(message, entries, highlight) {
+  renderLeaderboard(entries, highlight);
+  setOverlayView("result", { message });
+  state.endOverlayHandle = window.setTimeout(showIntroOverlay, 15000);
+}
+
+async function endGame(completed, elapsedMs) {
+  if (state.finished) {
+    return;
+  }
   state.finished = true;
   state.started = false;
-  window.clearInterval(state.timerHandle);
+  state.completed = completed;
+  state.elapsedMs = elapsedMs;
+  cancelAnimationFrame(state.rafHandle);
   window.clearTimeout(state.flipBackHandle);
   stopBackgroundMusic();
-  const matchedPairs = state.cards.filter((card) => card.matched).length / 2;
-  showOverlay("Play Again", buildEndMessage(matchedPairs));
-  state.endOverlayHandle = window.setTimeout(() => {
-    resetBoard();
-    showOverlay("Start");
-  }, 5000);
+
+  if (completed) {
+    playVictoryJingle();
+  }
+
+  const headline = completed ? `You finished in ${formatTime(elapsedMs)}!` : "Time's up!";
+  renderLeaderboardMessage("Loading leaderboard…");
+  setOverlayView("result", { message: headline });
+
+  let entries = [];
+  try {
+    entries = await fetchLeaderboard();
+  } catch (error) {
+    showResult(headline, [], null);
+    return;
+  }
+
+  if (completed && qualifiesForTop(entries, elapsedMs)) {
+    formError.hidden = true;
+    formName.value = "";
+    formPhone.value = "";
+    setOverlayView("form", {
+      message: `Top 5! You finished in ${formatTime(elapsedMs)} — enter your details.`,
+    });
+    window.setTimeout(() => formName.focus(), 60);
+    return;
+  }
+
+  const message = completed
+    ? `You finished in ${formatTime(elapsedMs)} — not quite the top 5!`
+    : "Time's up! Thanks for playing.";
+  showResult(message, entries, null);
 }
 
 function checkForMatch() {
@@ -423,9 +545,8 @@ function checkForMatch() {
     const matchedPairs = state.cards.filter((card) => card.matched).length / 2;
 
     if (matchedPairs === CARD_COUNT / 2) {
-      stopBackgroundMusic();
-      playVictoryJingle();
-      finishGame("Congratulations!");
+      const elapsedMs = Math.min(TURN_MS, performance.now() - state.startTime);
+      endGame(true, elapsedMs);
       return;
     }
     return;
@@ -501,7 +622,57 @@ function handleOverlayButtonClick(event) {
   startGame(event);
 }
 
+function showFormError(message) {
+  formError.textContent = message;
+  formError.hidden = false;
+}
+
+async function handleFormSubmit(event) {
+  event.preventDefault();
+
+  const name = formName.value.trim();
+  const phone = formPhone.value.trim();
+  const phoneDigits = phone.replace(/[^\d]/g, "");
+
+  if (name.length < 1) {
+    showFormError("Please enter your name.");
+    return;
+  }
+  if (phoneDigits.length < 6) {
+    showFormError("Please enter a valid phone number.");
+    return;
+  }
+
+  const timeMs = Math.round(state.elapsedMs);
+  const submitButton = overlayForm.querySelector("button[type='submit']");
+  submitButton.disabled = true;
+  submitButton.textContent = "Saving…";
+
+  try {
+    const response = await fetch("/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, time_ms: timeMs }),
+    });
+    if (!response.ok) {
+      throw new Error(`score ${response.status}`);
+    }
+    const data = await response.json();
+    const entries = Array.isArray(data.leaderboard) ? data.leaderboard : [];
+    showResult(`You made the Top 5 in ${formatTime(timeMs)}! 🎉`, entries, {
+      name,
+      time_ms: timeMs,
+    });
+  } catch (error) {
+    showFormError("Couldn't save — please try again.");
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Submit";
+  }
+}
+
 overlayButton.addEventListener("click", handleOverlayButtonClick);
+overlayForm.addEventListener("submit", handleFormSubmit);
 gameBoard.addEventListener("click", handleCardClick);
 
 showIntroOverlay();

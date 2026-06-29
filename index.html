@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IHH Matching Game</title>
-    <link rel="stylesheet" href="./styles.css?v=20260624e" />
+    <link rel="stylesheet" href="./styles.css?v=20260629a" />
   </head>
   <body>
     <main class="app-shell">
@@ -21,6 +21,38 @@
             <p id="overlay-instructions" class="overlay-instructions">
               Match the cards within 20 seconds.
             </p>
+
+            <div id="overlay-leaderboard" class="leaderboard" hidden>
+              <h3 class="leaderboard-title">Leaderboard</h3>
+              <ol id="leaderboard-list" class="leaderboard-list"></ol>
+            </div>
+
+            <form id="overlay-form" class="lead-form" hidden>
+              <input
+                id="form-name"
+                class="lead-input"
+                type="text"
+                placeholder="Full name"
+                maxlength="40"
+                autocomplete="name"
+                required
+              />
+              <input
+                id="form-phone"
+                class="lead-input"
+                type="tel"
+                placeholder="Phone number"
+                maxlength="20"
+                inputmode="tel"
+                autocomplete="tel"
+                required
+              />
+              <p id="form-error" class="form-error" hidden></p>
+              <button id="form-submit" class="primary-button" type="submit">
+                Submit
+              </button>
+            </form>
+
             <button id="overlay-button" class="primary-button" type="button">
               Start
             </button>
@@ -30,7 +62,7 @@
         <div class="playfield">
           <header class="hud">
             <div class="timer-bar" aria-live="polite">
-              <strong id="timer">20</strong>
+              <strong id="timer">20.00</strong>
             </div>
           </header>
 
@@ -50,6 +82,6 @@
       </button>
     </template>
 
-    <script src="./script.js?v=20260624f"></script>
+    <script src="./script.js?v=20260629a"></script>
   </body>
 </html>

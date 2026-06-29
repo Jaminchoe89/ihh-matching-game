@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IHH Matching Game — Admin</title>
+    <link rel="stylesheet" href="./styles.css?v=20260629a" />
+    <style>
+      body {
+        background: linear-gradient(180deg, #2f3078, #25265f);
+        min-height: 100vh;
+        padding: clamp(16px, 4vw, 40px);
+      }
+      .admin-shell {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .admin-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        justify-content: space-between;
+        margin-bottom: 22px;
+      }
+      .admin-head img {
+        height: 44px;
+        width: auto;
+      }
+      .admin-head h1 {
+        margin: 0;
+        font-size: clamp(1.3rem, 3vw, 2rem);
+        font-weight: 700;
+      }
+      .admin-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      #status {
+        opacity: 0.8;
+        font-size: 0.95rem;
+      }
+      .refresh-btn {
+        appearance: none;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 22px;
+        background: var(--teal);
+        color: var(--indigo);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 560px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      }
+      th {
+        font-weight: 700;
+        color: var(--teal);
+        white-space: nowrap;
+      }
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+      td.num {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .rank {
+        opacity: 0.7;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-shell">
+      <header class="admin-head">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <img src="./1x/Logo White.png" alt="IHH Healthcare" />
+          <h1>Matching Game — Leads</h1>
+        </div>
+        <div class="admin-actions">
+          <span id="status">Loading…</span>
+          <button class="refresh-btn" id="refresh" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Time</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const rowsEl = document.getElementById("rows");
+
+      function fmtTime(ms) {
+        return (Number(ms) / 1000).toFixed(2) + "s";
+      }
+
+      function fmtWhen(iso) {
+        try {
+          return new Date(iso).toLocaleString();
+        } catch {
+          return iso || "";
+        }
+      }
+
+      async function load() {
+        statusEl.textContent = "Loading…";
+        try {
+          const response = await fetch("/api/admin/leads", { cache: "no-store" });
+          if (response.status === 401) {
+            statusEl.textContent = "Unauthorized — reload to sign in.";
+            return;
+          }
+          if (!response.ok) throw new Error(response.status);
+          const data = await response.json();
+          const leads = Array.isArray(data.leads) ? data.leads : [];
+          rowsEl.innerHTML = "";
+          leads.forEach((lead, index) => {
+            const tr = document.createElement("tr");
+            const cells = [
+              { text: String(index + 1), cls: "rank" },
+              { text: lead.name },
+              { text: lead.phone },
+              { text: fmtTime(lead.time_ms), cls: "num" },
+              { text: fmtWhen(lead.created_at), cls: "num" },
+            ];
+            cells.forEach((cell) => {
+              const td = document.createElement("td");
+              if (cell.cls) td.className = cell.cls;
+              td.textContent = cell.text;
+              tr.appendChild(td);
+            });
+            rowsEl.appendChild(tr);
+          });
+          statusEl.textContent = `${leads.length} ${leads.length === 1 ? "entry" : "entries"}`;
+        } catch (error) {
+          statusEl.textContent = "Error loading leads.";
+        }
+      }
+
+      document.getElementById("refresh").addEventListener("click", load);
+      load();
+    </script>
+  </body>
+</html>
