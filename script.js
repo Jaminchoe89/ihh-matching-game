@@ -41,8 +41,7 @@ const overlayPanel = document.querySelector(".overlay-panel");
 const overlayLogo = document.querySelector("#overlay-logo");
 const overlayMessage = document.querySelector("#overlay-message");
 const overlayInstructions = document.querySelector("#overlay-instructions");
-const overlayLeaderboard = document.querySelector("#overlay-leaderboard");
-const leaderboardList = document.querySelector("#leaderboard-list");
+const boardLeaderboardList = document.querySelector("#bl-list");
 const overlayForm = document.querySelector("#overlay-form");
 const formName = document.querySelector("#form-name");
 const formPhone = document.querySelector("#form-phone");
@@ -379,7 +378,6 @@ function setOverlayView(view, options = {}) {
   overlayMessage.textContent = options.message || "";
 
   overlayForm.hidden = !isForm;
-  overlayLeaderboard.hidden = !isResult;
 
   overlayButton.hidden = isForm;
   if (!isForm) {
@@ -396,6 +394,7 @@ function hideOverlay() {
 function showIntroOverlay() {
   resetBoard();
   setOverlayView("intro");
+  refreshBottomLeaderboard();
 }
 
 function resetBoard() {
@@ -419,42 +418,46 @@ function formatTime(ms) {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
-function renderLeaderboardMessage(message) {
-  leaderboardList.innerHTML = "";
-  const li = document.createElement("li");
-  li.className = "leaderboard-empty";
-  li.textContent = message;
-  leaderboardList.appendChild(li);
-}
+const MEDAL_CLASSES = ["medal-1", "medal-2", "medal-3", "medal-4", "medal-5"];
 
-function renderLeaderboard(entries, highlight) {
-  leaderboardList.innerHTML = "";
-  if (!entries || entries.length === 0) {
-    renderLeaderboardMessage("No scores yet — be the first!");
-    return;
-  }
-  entries.forEach((entry, index) => {
+function renderBottomLeaderboard(entries, highlight) {
+  boardLeaderboardList.innerHTML = "";
+  for (let i = 0; i < TOP_N; i += 1) {
+    const entry = entries && entries[i];
     const li = document.createElement("li");
-    li.className = "leaderboard-row";
-    if (
+    li.className = `bl-col rank-${i + 1}`;
+    if (!entry) {
+      li.classList.add("bl-empty");
+    } else if (
       highlight &&
       entry.name === highlight.name &&
       Number(entry.time_ms) === Number(highlight.time_ms)
     ) {
       li.classList.add("is-you");
     }
-    const rank = document.createElement("span");
-    rank.className = "lb-rank";
-    rank.textContent = `${index + 1}`;
+    const medal = document.createElement("span");
+    medal.className = `bl-medal ${MEDAL_CLASSES[i]}`;
+    medal.textContent = `${i + 1}`;
     const name = document.createElement("span");
-    name.className = "lb-name";
-    name.textContent = entry.name;
+    name.className = "bl-name";
+    name.textContent = entry ? entry.name : "—";
     const time = document.createElement("span");
-    time.className = "lb-time";
-    time.textContent = formatTime(entry.time_ms);
-    li.append(rank, name, time);
-    leaderboardList.appendChild(li);
-  });
+    time.className = "bl-time";
+    time.textContent = entry ? formatTime(entry.time_ms) : "—";
+    li.append(medal, name, time);
+    boardLeaderboardList.appendChild(li);
+  }
+}
+
+async function refreshBottomLeaderboard(highlight) {
+  try {
+    const entries = await fetchLeaderboard();
+    renderBottomLeaderboard(entries, highlight || null);
+    return entries;
+  } catch (error) {
+    renderBottomLeaderboard([], highlight || null);
+    return [];
+  }
 }
 
 async function fetchLeaderboard() {
@@ -474,7 +477,7 @@ function qualifiesForTop(entries, timeMs) {
 }
 
 function showResult(message, entries, highlight) {
-  renderLeaderboard(entries, highlight);
+  renderBottomLeaderboard(entries, highlight);
   setOverlayView("result", { message });
   state.endOverlayHandle = window.setTimeout(showIntroOverlay, 15000);
 }
@@ -496,7 +499,6 @@ async function endGame(completed, elapsedMs) {
   }
 
   const headline = completed ? `You finished in ${formatTime(elapsedMs)}!` : "Time's up!";
-  renderLeaderboardMessage("Loading leaderboard…");
   setOverlayView("result", { message: headline });
 
   let entries = [];
@@ -506,6 +508,8 @@ async function endGame(completed, elapsedMs) {
     showResult(headline, [], null);
     return;
   }
+
+  renderBottomLeaderboard(entries, null);
 
   if (completed && qualifiesForTop(entries, elapsedMs)) {
     formError.hidden = true;
@@ -675,4 +679,12 @@ overlayButton.addEventListener("click", handleOverlayButtonClick);
 overlayForm.addEventListener("submit", handleFormSubmit);
 gameBoard.addEventListener("click", handleCardClick);
 
+renderBottomLeaderboard([], null);
 showIntroOverlay();
+
+// Keep the bottom leaderboard fresh while idle (other kiosks/plays update it).
+window.setInterval(() => {
+  if (!state.started && !state.finished) {
+    refreshBottomLeaderboard();
+  }
+}, 30000);

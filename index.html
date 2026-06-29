@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IHH Matching Game</title>
-    <link rel="stylesheet" href="./styles.css?v=20260629d" />
+    <link rel="stylesheet" href="./styles.css?v=20260629e" />
   </head>
   <body>
     <main class="app-shell">
       <section class="game-card">
-        <section class="game-overlay" id="game-overlay" aria-live="polite">
+        <div class="stage">
+          <section class="game-overlay" id="game-overlay" aria-live="polite">
           <div class="overlay-panel">
             <img
               id="overlay-logo"
@@ -21,11 +22,6 @@
             <p id="overlay-instructions" class="overlay-instructions">
               Match the cards within 20 seconds.
             </p>
-
-            <div id="overlay-leaderboard" class="leaderboard" hidden>
-              <h3 class="leaderboard-title">Leaderboard</h3>
-              <ol id="leaderboard-list" class="leaderboard-list"></ol>
-            </div>
 
             <form id="overlay-form" class="lead-form" hidden>
               <input
@@ -73,6 +69,16 @@
             aria-label="Memory card board"
           ></section>
         </div>
+        </div>
+
+        <section
+          class="board-leaderboard"
+          id="board-leaderboard"
+          aria-label="Top 5 leaderboard"
+        >
+          <p class="bl-title">Top 5 Leaderboard</p>
+          <ol class="bl-list" id="bl-list"></ol>
+        </section>
       </section>
     </main>
 
@@ -83,6 +89,6 @@
       </button>
     </template>
 
-    <script src="./script.js?v=20260629a"></script>
+    <script src="./script.js?v=20260629b"></script>
   </body>
 </html>
