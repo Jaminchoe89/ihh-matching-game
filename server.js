@@ -10,9 +10,10 @@ const ROOT = __dirname;
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-// The admin panel is reached only via this secret path segment (no password);
-// keep the resulting URL private. /admin without the token returns 404.
+// The admin panel is reached via a secret path segment (/admin/<token>) on any
+// host, OR openly at the root of the ADMIN_HOST subdomain if one is configured.
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+const ADMIN_HOST = (process.env.ADMIN_HOST || "").toLowerCase();
 
 const TABLE = "leaderboard";
 const TOP_N = 5;
@@ -113,6 +114,43 @@ function adminTokenOk(token) {
   return Boolean(ADMIN_TOKEN) && token === ADMIN_TOKEN;
 }
 
+function isAdminHost(req) {
+  const host = (req.headers.host || "").toLowerCase().split(":")[0];
+  return Boolean(ADMIN_HOST) && host === ADMIN_HOST;
+}
+
+async function deleteAllLeads() {
+  const response = await supabase(`${TABLE}?id=gt.0`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`supabase delete ${response.status} ${detail}`);
+  }
+}
+
+async function respondLeads(res) {
+  if (!supabaseConfigured()) return sendJson(res, 200, { leads: [] });
+  try {
+    return sendJson(res, 200, { leads: await getAllLeads() });
+  } catch (error) {
+    console.error("leads error:", error.message);
+    return sendJson(res, 500, { error: "leads_failed" });
+  }
+}
+
+async function respondClear(res) {
+  if (!supabaseConfigured()) return sendJson(res, 503, { error: "storage_unavailable" });
+  try {
+    await deleteAllLeads();
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    console.error("clear error:", error.message);
+    return sendJson(res, 500, { error: "clear_failed" });
+  }
+}
+
 function serveStatic(res, pathname) {
   if (pathname === "/") pathname = "/index.html";
   const filePath = path.join(ROOT, path.normalize(pathname));
@@ -178,43 +216,35 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // --- Admin: all leads incl. phone numbers (access via secret token in URL) ---
+  // --- Admin leads API: open on the ADMIN_HOST, or token-gated on any host ---
+  if (pathname === "/api/leads" && req.method === "GET") {
+    if (!isAdminHost(req)) return sendText(res, 404, "Not found");
+    return respondLeads(res);
+  }
+  if (pathname === "/api/leads" && req.method === "DELETE") {
+    if (!isAdminHost(req)) return sendText(res, 404, "Not found");
+    return respondClear(res);
+  }
   if (pathname.startsWith("/api/leads/") && req.method === "GET") {
-    if (!adminTokenOk(pathname.slice("/api/leads/".length))) {
-      return sendText(res, 404, "Not found");
-    }
-    if (!supabaseConfigured()) return sendJson(res, 200, { leads: [] });
-    try {
-      return sendJson(res, 200, { leads: await getAllLeads() });
-    } catch (error) {
-      console.error("leads error:", error.message);
-      return sendJson(res, 500, { error: "leads_failed" });
-    }
+    if (!adminTokenOk(pathname.slice("/api/leads/".length))) return sendText(res, 404, "Not found");
+    return respondLeads(res);
   }
-
-  // --- Admin: clear the entire leaderboard (token-gated, destructive) ---
   if (pathname.startsWith("/api/leads/") && req.method === "DELETE") {
-    if (!adminTokenOk(pathname.slice("/api/leads/".length))) {
-      return sendText(res, 404, "Not found");
-    }
-    if (!supabaseConfigured()) return sendJson(res, 503, { error: "storage_unavailable" });
-    try {
-      const response = await supabase(`${TABLE}?id=gt.0`, {
-        method: "DELETE",
-        headers: { Prefer: "return=minimal" },
-      });
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(`supabase delete ${response.status} ${detail}`);
-      }
-      return sendJson(res, 200, { ok: true });
-    } catch (error) {
-      console.error("clear error:", error.message);
-      return sendJson(res, 500, { error: "clear_failed" });
-    }
+    if (!adminTokenOk(pathname.slice("/api/leads/".length))) return sendText(res, 404, "Not found");
+    return respondClear(res);
   }
 
-  // --- Admin page (served only at the secret token path) ---
+  // --- Admin page: open at the ADMIN_HOST root, or via the secret token path ---
+  if (
+    isAdminHost(req) &&
+    (pathname === "/" ||
+      pathname === "/index.html" ||
+      pathname === "/admin" ||
+      pathname === "/admin/" ||
+      pathname === "/admin.html")
+  ) {
+    return serveStatic(res, "/admin.html");
+  }
   if (pathname.startsWith("/admin/")) {
     if (!adminTokenOk(pathname.slice("/admin/".length))) {
       return sendText(res, 404, "Not found");

@@ -243,7 +243,12 @@
       const countEl = document.getElementById("count");
       const exportBtn = document.getElementById("export");
       const clearBtn = document.getElementById("clear");
-      const adminToken = window.location.pathname.split("/").filter(Boolean).pop();
+      // Token path (/admin/<token>) on any host, or the open admin-host root (/).
+      const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const leadsUrl =
+        pathParts[0] === "admin" && pathParts.length >= 2
+          ? `/api/leads/${pathParts[pathParts.length - 1]}`
+          : "/api/leads";
       let currentLeads = [];
 
       function fmtTime(ms) {
@@ -272,7 +277,7 @@
         setState("Loading…");
         setActionsEnabled(false);
         try {
-          const response = await fetch(`/api/leads/${adminToken}`, { cache: "no-store" });
+          const response = await fetch(leadsUrl, { cache: "no-store" });
           if (response.status === 404) {
             setState("Invalid or expired admin link.");
             return;
@@ -354,7 +359,7 @@
         clearBtn.disabled = true;
         clearBtn.textContent = "Clearing…";
         try {
-          const response = await fetch(`/api/leads/${adminToken}`, { method: "DELETE" });
+          const response = await fetch(leadsUrl, { method: "DELETE" });
           if (!response.ok) throw new Error(response.status);
           await load();
         } catch (error) {
