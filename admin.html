@@ -3,105 +3,185 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IHH Matching Game — Admin</title>
-    <link rel="stylesheet" href="./styles.css?v=20260629a" />
+    <title>Leads</title>
     <style>
-      body {
-        background: linear-gradient(180deg, #2f3078, #25265f);
-        min-height: 100vh;
-        padding: clamp(16px, 4vw, 40px);
+      /* Self-contained: this page is served at /admin/<token>, so it uses
+         absolute asset paths and its own styles (no relative ./ links). */
+      @font-face {
+        font-family: "IHH Sans";
+        font-weight: 400;
+        font-display: swap;
+        src: url("/fonts/IHHSans-Regular.woff2") format("woff2"),
+          url("/fonts/IHHSans-Regular.woff") format("woff");
       }
-      .admin-shell {
-        max-width: 1000px;
+      @font-face {
+        font-family: "IHH Sans";
+        font-weight: 700;
+        font-display: swap;
+        src: url("/fonts/IHHSans-Bold.woff2") format("woff2"),
+          url("/fonts/IHHSans-Bold.woff") format("woff");
+      }
+
+      :root {
+        --indigo: #2f3078;
+        --indigo-deep: #25265f;
+        --teal: #78ccc7;
+        --white: #ffffff;
+        --line: rgba(255, 255, 255, 0.1);
+        --muted: rgba(255, 255, 255, 0.58);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "IHH Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: var(--white);
+        background: linear-gradient(180deg, var(--indigo), var(--indigo-deep));
+        padding: clamp(20px, 4vw, 48px);
+      }
+
+      .wrap {
+        max-width: 960px;
         margin: 0 auto;
       }
-      .admin-head {
+
+      .bar {
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
-        gap: 16px;
         justify-content: space-between;
+        gap: 16px;
         margin-bottom: 22px;
       }
-      .admin-head img {
-        height: 44px;
-        width: auto;
-      }
-      .admin-head h1 {
-        margin: 0;
-        font-size: clamp(1.3rem, 3vw, 2rem);
+
+      .count {
+        font-size: clamp(1.4rem, 3vw, 2.1rem);
         font-weight: 700;
+        letter-spacing: -0.01em;
       }
-      .admin-actions {
-        display: flex;
-        align-items: center;
-        gap: 14px;
+      .count b {
+        color: var(--teal);
       }
-      #status {
-        opacity: 0.8;
-        font-size: 0.95rem;
-      }
-      .refresh-btn {
+
+      .refresh {
         appearance: none;
         border: none;
         border-radius: 999px;
-        padding: 10px 22px;
+        padding: 11px 24px;
         background: var(--teal);
         color: var(--indigo);
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
       }
-      .table-wrap {
-        overflow-x: auto;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+      .refresh:hover {
+        box-shadow: 0 8px 20px rgba(120, 204, 199, 0.3);
+        transform: translateY(-1px);
       }
+      .refresh:active {
+        transform: translateY(0);
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 560px;
       }
-      th,
-      td {
+
+      thead th {
         text-align: left;
-        padding: 14px 18px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-      }
-      th {
+        padding: 15px 22px;
+        font-size: 0.74rem;
         font-weight: 700;
-        color: var(--teal);
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
         white-space: nowrap;
+      }
+
+      tbody td {
+        padding: 14px 22px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 1.02rem;
+        vertical-align: middle;
       }
       tbody tr:last-child td {
         border-bottom: none;
       }
-      td.num {
+      tbody tr:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .rank {
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(120, 204, 199, 0.16);
+        color: var(--teal);
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .name {
+        font-weight: 600;
+      }
+      .phone {
         font-variant-numeric: tabular-nums;
+      }
+      .time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--teal);
+      }
+      .when {
+        color: var(--muted);
+        font-size: 0.92rem;
         white-space: nowrap;
       }
-      .rank {
-        opacity: 0.7;
-        font-weight: 700;
+
+      .state {
+        padding: 56px 22px;
+        text-align: center;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      @media (max-width: 560px) {
+        thead th.col-when,
+        tbody td.col-when {
+          display: none;
+        }
+        thead th,
+        tbody td {
+          padding: 12px 14px;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="admin-shell">
-      <header class="admin-head">
-        <div style="display: flex; align-items: center; gap: 14px">
-          <img src="./1x/Logo White.png" alt="IHH Healthcare" />
-          <h1>Matching Game — Leads</h1>
-        </div>
-        <div class="admin-actions">
-          <span id="status">Loading…</span>
-          <button class="refresh-btn" id="refresh" type="button">Refresh</button>
-        </div>
-      </header>
+    <div class="wrap">
+      <div class="bar">
+        <div class="count"><b id="count">0</b> entries</div>
+        <button class="refresh" id="refresh" type="button">↻ Refresh</button>
+      </div>
 
-      <div class="table-wrap">
+      <div class="card">
         <table>
           <thead>
             <tr>
@@ -109,22 +189,24 @@
               <th>Name</th>
               <th>Phone</th>
               <th>Time</th>
-              <th>Submitted</th>
+              <th class="col-when">Submitted</th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
+        <div class="state" id="state">Loading…</div>
       </div>
     </div>
 
     <script>
-      const statusEl = document.getElementById("status");
       const rowsEl = document.getElementById("rows");
+      const stateEl = document.getElementById("state");
+      const countEl = document.getElementById("count");
+      const adminToken = window.location.pathname.split("/").filter(Boolean).pop();
 
       function fmtTime(ms) {
         return (Number(ms) / 1000).toFixed(2) + "s";
       }
-
       function fmtWhen(iso) {
         try {
           return new Date(iso).toLocaleString();
@@ -133,40 +215,51 @@
         }
       }
 
-      const adminToken = window.location.pathname.split("/").filter(Boolean).pop();
+      function setState(message) {
+        rowsEl.innerHTML = "";
+        stateEl.textContent = message;
+        stateEl.hidden = false;
+      }
 
       async function load() {
-        statusEl.textContent = "Loading…";
+        setState("Loading…");
         try {
           const response = await fetch(`/api/leads/${adminToken}`, { cache: "no-store" });
           if (response.status === 404) {
-            statusEl.textContent = "Invalid or expired admin link.";
+            setState("Invalid or expired admin link.");
             return;
           }
           if (!response.ok) throw new Error(response.status);
           const data = await response.json();
           const leads = Array.isArray(data.leads) ? data.leads : [];
+          countEl.textContent = String(leads.length);
+
+          if (leads.length === 0) {
+            setState("No entries yet.");
+            return;
+          }
+          stateEl.hidden = true;
           rowsEl.innerHTML = "";
           leads.forEach((lead, index) => {
             const tr = document.createElement("tr");
             const cells = [
-              { text: String(index + 1), cls: "rank" },
-              { text: lead.name },
-              { text: lead.phone },
-              { text: fmtTime(lead.time_ms), cls: "num" },
-              { text: fmtWhen(lead.created_at), cls: "num" },
+              { html: `<span class="rank">${index + 1}</span>` },
+              { text: lead.name, cls: "name" },
+              { text: lead.phone, cls: "phone" },
+              { text: fmtTime(lead.time_ms), cls: "time" },
+              { text: fmtWhen(lead.created_at), cls: "when col-when" },
             ];
             cells.forEach((cell) => {
               const td = document.createElement("td");
               if (cell.cls) td.className = cell.cls;
-              td.textContent = cell.text;
+              if (cell.html) td.innerHTML = cell.html;
+              else td.textContent = cell.text;
               tr.appendChild(td);
             });
             rowsEl.appendChild(tr);
           });
-          statusEl.textContent = `${leads.length} ${leads.length === 1 ? "entry" : "entries"}`;
         } catch (error) {
-          statusEl.textContent = "Error loading leads.";
+          setState("Couldn't load entries — try Refresh.");
         }
       }
 
