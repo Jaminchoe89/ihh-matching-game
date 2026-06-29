@@ -157,7 +157,7 @@ body {
 
 .overlay-panel.is-compact .overlay-message {
   font-size: clamp(1.3rem, 3.4vw, 2rem);
-  line-height: 1.12;
+  line-height: 1.24;
 }
 
 .overlay-logo {
@@ -173,9 +173,9 @@ body {
   color: var(--white);
   text-align: center;
   font-size: clamp(1.6rem, 3.2vw, 2.7rem);
-  line-height: 1.12;
+  line-height: 1.2;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   text-wrap: balance;
 }
 
@@ -185,8 +185,9 @@ body {
   color: rgba(255, 255, 255, 0.9);
   text-align: center;
   font-size: clamp(1.15rem, 2vw, 1.45rem);
-  line-height: 1.45;
+  line-height: 1.55;
   font-weight: 500;
+  letter-spacing: 0.005em;
   text-wrap: balance;
 }
 
@@ -307,6 +308,8 @@ body {
   font-size: 1.9rem;
   line-height: 1;
   font-weight: 700;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
   color: var(--indigo);
 }
 
@@ -409,11 +412,12 @@ body {
 }
 
 .leaderboard-title {
-  margin: 0;
+  margin: 0 0 2px;
   text-align: center;
-  font-size: clamp(1.2rem, 2.6vw, 1.9rem);
+  font-size: clamp(1.1rem, 2.4vw, 1.55rem);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .leaderboard-list {
@@ -429,11 +433,12 @@ body {
   display: grid;
   grid-template-columns: 1.6em 1fr auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
+  gap: 14px;
+  padding: 11px 18px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.09);
   font-size: clamp(1rem, 2vw, 1.35rem);
+  line-height: 1.2;
 }
 
 .leaderboard-row.is-you {
@@ -452,11 +457,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.005em;
 }
 
 .lb-time {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .leaderboard-empty {
@@ -488,9 +495,11 @@ body {
 }
 
 .form-hint {
-  margin: -6px 4px 0;
+  margin: -4px 4px 0;
   text-align: left;
   font-size: clamp(0.85rem, 1.8vw, 1rem);
+  line-height: 1.4;
+  letter-spacing: 0.01em;
   color: rgba(255, 255, 255, 0.62);
 }
 

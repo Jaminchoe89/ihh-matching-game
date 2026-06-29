@@ -64,7 +64,8 @@
       .count {
         font-size: clamp(1.4rem, 3vw, 2.1rem);
         font-weight: 700;
-        letter-spacing: -0.01em;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
       }
       .count b {
         color: var(--teal);
@@ -83,6 +84,7 @@
         padding: 11px 22px;
         font: inherit;
         font-weight: 700;
+        letter-spacing: 0.01em;
         cursor: pointer;
         transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
       }
@@ -147,9 +149,10 @@
       }
 
       tbody td {
-        padding: 14px 22px;
+        padding: 15px 22px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         font-size: 1.02rem;
+        line-height: 1.4;
         vertical-align: middle;
       }
       tbody tr:last-child td {
